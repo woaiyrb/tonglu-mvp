@@ -10,8 +10,9 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Callout, OverviewBoard, ProgressBar, SectionTitle, StatCard, StatusBadge } from "../components/Ui";
+import { Callout, OverviewBoard, ProgressBar, SectionTitle, StageFunctionStrip, StatCard, StatusBadge } from "../components/Ui";
 import { STAGES, UNITS } from "../data";
+import { getStageGuide } from "../stageGuidance";
 import { useApp } from "../store";
 import { getUnitStats, scoreTone } from "../utils";
 
@@ -23,6 +24,7 @@ export function MentorDashboard() {
   const unit = UNITS[0];
   const stats = getUnitStats(unit, state.offers);
   const stage = STAGES.find((item) => item.key === state.stage) ?? STAGES[0];
+  const guide = getStageGuide("mentor", state.stage);
   const scored = state.candidates.filter((candidate) => candidate.score !== null).length;
   const unscored = state.candidates.length - scored;
   const offers = state.candidates.filter((candidate) => candidate.decision === "offer").length;
@@ -45,19 +47,25 @@ export function MentorDashboard() {
                 <span className="mentor-avatar mentor-avatar--large">周</span>
                 <div>
                   <span className="eyebrow">智能交互实验室 · {unit.code}</span>
-                  <h2>早上好，周老师。</h2>
-                  <p>{unit.direction} · 本轮 {state.candidates.length} 名学生进入面试。</p>
+                  <h2>{guide.headline}</h2>
+                  <p>{guide.description}</p>
                 </div>
               </div>
               <div className="mentor-banner-actions">
-                <Link to="/mentor/interviews" className="btn btn-primary">
-                  继续面试评分 <ArrowRight aria-hidden="true" />
+                <Link to={state.stage === "interview" ? "/mentor/interviews" : "/mentor/candidates"} className="btn btn-primary">
+                  {state.stage === "interview" ? "继续面试评分" : "查看候选名单"} <ArrowRight aria-hidden="true" />
                 </Link>
-                <Link to="/mentor/candidates" className="btn btn-secondary">查看候选名单</Link>
+                <Link to={state.stage === "interview" ? "/mentor/candidates" : "/mentor/interviews"} className="btn btn-secondary">
+                  {state.stage === "interview" ? "查看候选名单" : "查看面试安排"}
+                </Link>
               </div>
             </section>
 
-            {unscored > 0 ? (
+            {state.stage !== "interview" ? (
+              <Callout tone="info" title={`${stage.label}：${guide.focus}`}>
+                {guide.nextStep}。本阶段不可用的写操作已在下方标出，服务器会同步校验阶段。
+              </Callout>
+            ) : unscored > 0 ? (
               <Callout
                 tone="warning"
                 title={`还有 ${unscored} 名学生未完成评分`}
@@ -70,6 +78,8 @@ export function MentorDashboard() {
                 可以核对候选结论并形成名单。
               </Callout>
             )}
+
+            <StageFunctionStrip available={guide.available} unavailable={guide.unavailable} />
 
             <section className="stats-grid">
               <StatCard label="进入面试" value={state.candidates.length} hint="本轮有效报名" icon={<Users aria-hidden="true" />} tone="sky" />

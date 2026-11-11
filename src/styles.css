@@ -2249,6 +2249,68 @@ svg { width: 20px; height: 20px; flex: none; stroke-width: 1.9; }
   animation: module-in 260ms var(--ease) both;
 }
 
+.stage-functions {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid rgba(90, 74, 58, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 252, 245, 0.86);
+}
+
+.stage-functions-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.stage-functions-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 78px;
+  flex: none;
+  color: var(--sage-deep);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.stage-functions-label svg { width: 13px; height: 13px; }
+
+.stage-functions-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.stage-chip {
+  padding: 3px 9px;
+  color: #9a8b77;
+  font-size: 10.5px;
+  border: 1px solid rgba(90, 74, 58, 0.12);
+  border-radius: var(--radius-pill);
+  background: rgba(90, 74, 58, 0.04);
+}
+
+.stage-chip--open {
+  color: #3f6f60;
+  border-color: rgba(79, 138, 120, 0.2);
+  background: rgba(124, 185, 168, 0.12);
+}
+
+.stage-functions-row--locked .stage-functions-label { color: #a08c72; }
+
+.stage-card-focus {
+  margin-top: 7px;
+  color: #8a7660;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
 @keyframes module-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }

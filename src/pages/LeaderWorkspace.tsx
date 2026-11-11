@@ -20,10 +20,12 @@ import {
   OverviewBoard,
   PageHeader,
   SectionTitle,
+  StageFunctionStrip,
   StatCard,
   StatusBadge,
 } from "../components/Ui";
 import { STAGES, UNITS } from "../data";
+import { getStageGuide } from "../stageGuidance";
 import { useApp } from "../store";
 import { cn, formatDateTime, getUnitStats } from "../utils";
 
@@ -46,6 +48,7 @@ function useLeaderData() {
 export function LeaderOverview() {
   const { state, stage, unauthorized, pendingAdjustments, openAppeals, totals } = useLeaderData();
   const [active, setActive] = useState<LeaderModule>("today");
+  const guide = getStageGuide("college_leader", state.stage);
   const exceptions = unauthorized + openAppeals + (state.published ? 0 : 1);
   const checks = [
     { label: "学生已确认唯一去向", ok: Boolean(state.confirmedOfferId), detail: state.finalUnitId ? `最终方向 ${state.finalUnitId}` : "等待学生确认" },
@@ -71,25 +74,31 @@ export function LeaderOverview() {
                 <span className="mentor-avatar mentor-avatar--large">院</span>
                 <div>
                   <span className="eyebrow">学院负责人工作台 · 第 {stage.number} 阶段</span>
-                  <h2>{exceptions ? "处理例外，守住最后一关。" : "当前没有待处理例外。"}</h2>
-                  <p>{stage.label} · 未授权调剂审批、公示异议办结与正式名单冻结。</p>
+                  <h2>{guide.headline}</h2>
+                  <p>{guide.description}</p>
                 </div>
               </div>
               <div className="mentor-banner-actions">
-                <Link to="/leader/exceptions" className="btn btn-primary">处理异常 <ArrowRight aria-hidden="true" /></Link>
-                <Link to="/leader/publicity" className="btn btn-secondary">公示终审</Link>
+                <Link to={state.stage === "publicity" ? "/leader/publicity" : "/leader/exceptions"} className="btn btn-primary">
+                  {state.stage === "adjustment" ? "审批未授权调剂" : state.stage === "publicity" ? "公示终审" : "查看异常"} <ArrowRight aria-hidden="true" />
+                </Link>
+                <Link to={state.stage === "publicity" ? "/leader/exceptions" : "/leader/publicity"} className="btn btn-secondary">
+                  {state.stage === "publicity" ? "查看调剂" : "查看公示状态"}
+                </Link>
               </div>
             </section>
 
             <Callout
               tone={exceptions ? "warning" : "success"}
-              title={exceptions ? "存在需要学院负责人处理的例外" : "当前没有待处理例外"}
+              title={exceptions ? `${stage.label}：仍有 ${exceptions} 项需要关注` : `${stage.label}：当前没有待处理例外`}
               action={<Link to="/leader/exceptions" className="btn btn-secondary btn-small">查看异常 <ArrowRight aria-hidden="true" /></Link>}
             >
-              {unauthorized ? `${unauthorized} 条未授权调剂待审批；` : ""}
+              {guide.nextStep}。{unauthorized ? `${unauthorized} 条未授权调剂待审批；` : ""}
               {openAppeals ? `${openAppeals} 条公示异议待办结；` : ""}
               {!state.published ? "公示名单尚未生成。" : "公示 V1 已生成。"}
             </Callout>
+
+            <StageFunctionStrip available={guide.available} unavailable={guide.unavailable} />
 
             <section className="stats-grid stats-grid--four">
               <StatCard label="计划名额" value={totals.quota} hint={`${totals.confirmed + totals.pending} 人已占用`} icon={<Users aria-hidden="true" />} tone="sky" />

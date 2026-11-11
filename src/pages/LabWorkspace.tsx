@@ -20,10 +20,12 @@ import {
   ProgressBar,
   ScorePill,
   SectionTitle,
+  StageFunctionStrip,
   StatCard,
   StatusBadge,
 } from "../components/Ui";
 import { STAGES, UNITS } from "../data";
+import { getStageGuide } from "../stageGuidance";
 import { useApp } from "../store";
 import { downloadCsv, getUnitStats } from "../utils";
 
@@ -45,6 +47,7 @@ function useLabData() {
 export function LabOverview() {
   const { state, unit, stats, stage, candidates, scored, offers, waitlist } = useLabData();
   const [active, setActive] = useState<LabModule>("today");
+  const guide = getStageGuide("lab_manager", state.stage);
   const modules: Array<{ id: LabModule; label: string; hint: string; icon: ReactNode }> = [
     { id: "today", label: "今日概览", hint: `第 ${stage.number} 阶段`, icon: <Sparkles aria-hidden="true" /> },
     { id: "quota", label: "名额", hint: `剩余 ${stats.remaining} 人`, icon: <Gauge aria-hidden="true" /> },
@@ -61,8 +64,8 @@ export function LabOverview() {
                 <span className="mentor-avatar mentor-avatar--large">实</span>
                 <div>
                   <span className="eyebrow">实验室负责人工作台 · {unit.code}</span>
-                  <h2>名额、候选与数据，一眼看清。</h2>
-                  <p>{unit.name} · {unit.direction} · 第 {stage.number} 阶段 {stage.label}</p>
+                  <h2>{guide.headline}</h2>
+                  <p>{guide.description}</p>
                 </div>
               </div>
               <div className="mentor-banner-actions">
@@ -71,9 +74,11 @@ export function LabOverview() {
               </div>
             </section>
 
-            <Callout tone="info" title="只读权限已生效">
-              名额由学院管理员调整，候选结论由导师提交，评分由面试官维护。实验室负责人可以查看与导出，不直接改写业务结果。
+            <Callout tone="info" title={`${stage.label}：${guide.focus}`}>
+              {guide.nextStep}。名额由学院管理员调整，评分由面试官维护，实验室负责人只读查看与导出。
             </Callout>
+
+            <StageFunctionStrip available={guide.available} unavailable={guide.unavailable} />
 
             <section className="stats-grid stats-grid--four">
               <StatCard label="计划名额" value={unit.quota} hint={`${unit.name}`} icon={<Users aria-hidden="true" />} tone="sky" />

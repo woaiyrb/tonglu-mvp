@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Callout, OverviewBoard, ProgressBar, SectionTitle, StatCard, StatusBadge } from "../components/Ui";
+import { Callout, OverviewBoard, ProgressBar, SectionTitle, StageFunctionStrip, StatCard, StatusBadge } from "../components/Ui";
 import { STAGES, UNITS } from "../data";
+import { getStageGuide } from "../stageGuidance";
 import { useApp } from "../store";
 import { formatDateTime, getUnitStats } from "../utils";
 
@@ -22,6 +23,7 @@ type AdminModule = "today" | "quota" | "operations";
 export function AdminDashboard() {
   const { state } = useApp();
   const [active, setActive] = useState<AdminModule>("today");
+  const guide = getStageGuide("college_admin", state.stage);
   const units = state.units?.length ? state.units : UNITS;
   const stage = STAGES.find((item) => item.key === state.stage) ?? STAGES[0];
   const totals = units.reduce(
@@ -61,17 +63,24 @@ export function AdminDashboard() {
                 <span className="mentor-avatar mentor-avatar--large">管</span>
                 <div>
                   <span className="eyebrow">运营看板 · 第 {stage.number} 阶段</span>
-                  <h2>{exceptions.length ? "看清全局，再处理例外。" : "本轮关键校验全部通过。"}</h2>
-                  <p>名额、候补、调剂、公示与审计在同一处汇总。异常项优先于常规统计。</p>
+                  <h2>{guide.headline}</h2>
+                  <p>{guide.description}</p>
                 </div>
               </div>
               <div className="mentor-banner-actions">
-                <Link to="/admin/adjustment" className="btn btn-primary">处理例外 <ArrowRight aria-hidden="true" /></Link>
-                <Link to="/admin/publicity" className="btn btn-secondary">公示名单</Link>
+                <Link
+                  to={state.stage === "supplement" ? "/admin/quota" : state.stage === "publicity" ? "/admin/publicity" : "/admin/adjustment"}
+                  className="btn btn-primary"
+                >
+                  {state.stage === "supplement" ? "生成补录" : state.stage === "publicity" ? "发布与冻结" : "处理例外"} <ArrowRight aria-hidden="true" />
+                </Link>
+                <Link to={state.stage === "publicity" ? "/admin/adjustment" : "/admin/publicity"} className="btn btn-secondary">
+                  {state.stage === "publicity" ? "查看调剂" : "查看公示"}
+                </Link>
               </div>
             </section>
 
-            {exceptions.length > 0 ? (
+            {exceptions.length > 0 && ["supplement", "adjustment", "publicity"].includes(state.stage) ? (
               <Callout
                 tone="warning"
                 title={`有 ${exceptions.length} 项需要关注`}
@@ -80,10 +89,12 @@ export function AdminDashboard() {
                 {exceptions.join("；")}。
               </Callout>
             ) : (
-              <Callout tone="success" title="本轮关键校验全部通过">
-                评分、授权与确认状态完整，可按流程进入公示。
+              <Callout tone="info" title={`${stage.label}：${guide.focus}`}>
+                {guide.nextStep}。当前阶段未开放的写操作已在下方标出。
               </Callout>
             )}
+
+            <StageFunctionStrip available={guide.available} unavailable={guide.unavailable} />
 
             <section className="stats-grid stats-grid--four">
               <StatCard label="计划名额" value={totals.quota} hint={`${units.length} 个实训室`} icon={<Users aria-hidden="true" />} tone="sky" />

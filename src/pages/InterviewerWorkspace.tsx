@@ -23,11 +23,13 @@ import {
   ProgressBar,
   ScorePill,
   SectionTitle,
+  StageFunctionStrip,
   StatCard,
   StatusBadge,
 } from "../components/Ui";
 import { ScoreDialog } from "../components/ScoreDialog";
 import { STAGES, UNITS } from "../data";
+import { getStageGuide } from "../stageGuidance";
 import { useApp } from "../store";
 import type { Candidate } from "../types";
 import { cn, downloadCsv } from "../utils";
@@ -53,6 +55,7 @@ function useInterviewerData() {
 export function InterviewerOverview() {
   const { state, unit, stage, scored, pending, average, locked } = useInterviewerData();
   const [active, setActive] = useState<InterviewerModule>("today");
+  const guide = getStageGuide("interviewer", state.stage);
   const recent = state.candidates
     .filter((candidate) => candidate.score !== null)
     .slice(0, 4);
@@ -72,12 +75,14 @@ export function InterviewerOverview() {
                 <span className="mentor-avatar mentor-avatar--large">评</span>
                 <div>
                   <span className="eyebrow">面试官工作台 · {unit.code}</span>
-                  <h2>{locked ? "评分入口已锁定。" : pending ? `还有 ${pending} 名学生待评分。` : "本实训室评分已完成。"}</h2>
-                  <p>{unit.name} · {unit.mentor} · 第 {stage.number} 阶段 {stage.label}</p>
+                  <h2>{state.stage === "interview" ? (pending ? `还有 ${pending} 名学生待评分。` : "本实训室评分已完成。") : guide.headline}</h2>
+                  <p>{guide.description}</p>
                 </div>
               </div>
               <div className="mentor-banner-actions">
-                <Link to="/interviewer/scoring" className="btn btn-primary">进入评分队列 <ArrowRight aria-hidden="true" /></Link>
+                <Link to={state.stage === "interview" ? "/interviewer/scoring" : "/interviewer/records"} className="btn btn-primary">
+                  {state.stage === "interview" ? "进入评分队列" : "查看评分记录"} <ArrowRight aria-hidden="true" />
+                </Link>
                 <Link to="/interviewer/records" className="btn btn-secondary">评分记录</Link>
               </div>
             </section>
@@ -92,6 +97,8 @@ export function InterviewerOverview() {
                   : "切换到第 4 阶段“面试考核”后，评分才会写入数据库。"
                 : "评分保存后立即进入数据库，评语与操作人同步写入审计日志。"}
             </Callout>
+
+            <StageFunctionStrip available={guide.available} unavailable={guide.unavailable} />
 
             <section className="stats-grid stats-grid--four">
               <StatCard label="面试学生" value={state.candidates.length} hint={`${unit.name} 候选人`} icon={<UserRoundSearch aria-hidden="true" />} tone="sky" />

@@ -25,6 +25,7 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { CYCLE, STAGES } from "../data";
+import { stageNotification } from "../stageGuidance";
 import { useApp } from "../store";
 import type { Role } from "../types";
 import { cn } from "../utils";
@@ -218,7 +219,7 @@ export function Layout() {
               type="button"
               className="icon-button topbar-icon"
               aria-label="通知"
-              onClick={() => notify(notificationForRole(state.role), "info")}
+              onClick={() => notify(stageNotification(state.role, state.stage), "info")}
             >
               <Bell aria-hidden="true" />
               <span className="notification-dot" aria-hidden="true" />
@@ -364,15 +365,3 @@ export function Layout() {
   );
 }
 
-function notificationForRole(role: Role): string {
-  const messages: Record<Role, string> = {
-    student: "你收到 2 个拟录取意向，请在截止前确认。",
-    mentor: "候选人评分与名单已与数据库同步。",
-    interviewer: "评分队列已加载，请完成待评分学生。",
-    lab_manager: "实验室名额与候选人数据来自实时数据库。",
-    college_admin: "调剂与公示校验等待处理。",
-    college_leader: "存在需学院负责人审批的异常调剂。",
-    sys_admin: "数据库连接正常，可查看账号与审计状态。",
-  };
-  return messages[role];
-}

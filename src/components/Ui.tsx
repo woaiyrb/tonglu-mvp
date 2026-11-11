@@ -9,6 +9,7 @@ import {
   Database,
   Eye,
   Info,
+  LockKeyhole,
   Sparkles,
   TriangleAlert,
   X,
@@ -160,6 +161,41 @@ export function OverviewBoard<T extends string>({
         <div className="overview-module" key={active}>{children}</div>
       </div>
     </div>
+  );
+}
+
+export function StageFunctionStrip({
+  available,
+  unavailable,
+}: {
+  available: string[];
+  unavailable: string[];
+}) {
+  return (
+    <section className="stage-functions" aria-label="当前阶段可用功能">
+      <div className="stage-functions-row">
+        <span className="stage-functions-label">
+          <CheckCircle2 aria-hidden="true" />
+          当前可用
+        </span>
+        <div className="stage-functions-chips">
+          {available.map((item) => (
+            <span className="stage-chip stage-chip--open" key={item}>{item}</span>
+          ))}
+        </div>
+      </div>
+      <div className="stage-functions-row stage-functions-row--locked">
+        <span className="stage-functions-label">
+          <LockKeyhole aria-hidden="true" />
+          暂未开放
+        </span>
+        <div className="stage-functions-chips">
+          {unavailable.map((item) => (
+            <span className="stage-chip" key={item}>{item}</span>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

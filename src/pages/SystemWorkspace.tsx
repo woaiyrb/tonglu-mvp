@@ -20,9 +20,11 @@ import {
   OverviewBoard,
   PageHeader,
   SectionTitle,
+  StageFunctionStrip,
   StatCard,
   StatusBadge,
 } from "../components/Ui";
+import { getStageGuide } from "../stageGuidance";
 import { useApp } from "../store";
 import type { Role } from "../types";
 import { formatDateTime } from "../utils";
@@ -46,6 +48,7 @@ function roleLabel(role: Role) {
 export function SystemOverview() {
   const { state } = useApp();
   const [active, setActive] = useState<SystemModule>("today");
+  const guide = getStageGuide("sys_admin", state.stage);
   const stats = state.dbStats;
   const activeUsers = state.users?.filter((user) => user.active).length ?? 0;
   const modules: Array<{ id: SystemModule; label: string; hint: string; icon: ReactNode }> = [
@@ -64,8 +67,8 @@ export function SystemOverview() {
                 <span className="mentor-avatar mentor-avatar--large">系</span>
                 <div>
                   <span className="eyebrow">系统管理台 · SQLite</span>
-                  <h2>先看系统是否健康，再改权限。</h2>
-                  <p>账号、角色、数据库状态与审计。业务评价、名额和公示不在此处直接改写。</p>
+                  <h2>{guide.headline}</h2>
+                  <p>{guide.description}</p>
                 </div>
               </div>
               <div className="mentor-banner-actions">
@@ -74,9 +77,11 @@ export function SystemOverview() {
               </div>
             </section>
 
-            <Callout tone="success" title="后端数据库在线">
-              当前会话通过 Bearer Token 鉴权。账号密码使用 scrypt 哈希，业务写操作在事务内完成。
+            <Callout tone="success" title={`${guide.focus} · 后端数据库在线`}>
+              {guide.nextStep}。当前会话通过 Bearer Token 鉴权，账号密码使用 scrypt 哈希。
             </Callout>
+
+            <StageFunctionStrip available={guide.available} unavailable={guide.unavailable} />
 
             <section className="stats-grid stats-grid--four">
               <StatCard label="账号总数" value={stats?.users ?? state.users?.length ?? 0} hint={`${activeUsers} 个启用`} icon={<Users aria-hidden="true" />} tone="sky" />

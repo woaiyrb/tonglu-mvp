@@ -17,11 +17,13 @@ import { OfferCard } from "../components/OfferCard";
 import { StageRail } from "../components/StageRail";
 import {
   SectionTitle,
+  StageFunctionStrip,
   StatCard,
   StatusBadge,
   UnitGlyph,
 } from "../components/Ui";
 import { CYCLE, NOTICE_ITEMS, STAGES, UNITS } from "../data";
+import { getStageGuide } from "../stageGuidance";
 import { useApp } from "../store";
 import { cn, getUnitStats } from "../utils";
 
@@ -42,21 +44,62 @@ export function StudentOverview() {
     ? UNITS.find((unit) => unit.id === confirmedOffer.unitId)
     : null;
   const stage = STAGES.find((item) => item.key === state.stage) ?? STAGES[0];
+  const guide = getStageGuide("student", state.stage);
+  const offerDecisionOpen = state.stage === "offer";
+  const offerResultVisible = ["offer", "supplement", "adjustment", "publicity"].includes(state.stage);
+  const activeConfirmedUnit = offerResultVisible ? confirmedUnit : null;
+  const activePendingOffers = offerDecisionOpen ? pendingOffers : [];
   const nextStage = STAGES.find((item) => item.number === stage.number + 1);
-  const doneInterviews = state.interviews.filter((item) => item.status === "done").length;
-  const topScore = Math.max(...state.interviews.map((item) => item.score ?? 0));
+  const interviewsStarted = state.stage !== "intent";
+  const doneInterviews = interviewsStarted
+    ? state.interviews.filter((item) => item.status === "done").length
+    : 0;
+  const topScore = interviewsStarted
+    ? Math.max(0, ...state.interviews.map((item) => item.score ?? 0))
+    : 0;
 
-  const headline = confirmedUnit
-    ? "方向已落定，等一场公示。"
-    : pendingOffers.length > 0
-      ? "两个方向都在等你，做一次选择。"
-      : "一步一步，走向你想去的地方。";
+  const headline = guide.headline;
+  const description = guide.description;
+  const stageStateLabel =
+    state.stage === "publicity"
+      ? state.frozenAt
+        ? "名单已冻结"
+        : state.published
+          ? "公示进行中"
+          : "等待发布公示"
+      : state.stage === "intent"
+        ? "填报开放中"
+        : state.stage === "interview"
+          ? "面试进行中"
+          : state.stage === "offer"
+            ? "确认开放中"
+            : state.stage === "supplement"
+              ? "补录进行中"
+              : "调剂进行中";
 
-  const description = confirmedUnit
-    ? `你已确认加入${confirmedUnit.name}。接下来，学院将完成唯一性、名额与授权校验，并生成公示名单。`
-    : pendingOffers.length > 0
-      ? "面试已经结束，结果已经抵达。请选择一个真正想投入的方向，其他拟录取会自动释放。"
-      : "从平行意向到正式入组，每一次提交、每一场面试和每一个选择，都在这里留下清楚的记录。";
+  const primaryAction =
+    state.stage === "intent"
+      ? { label: "完善平行意向", to: "/student/units" as const, module: null }
+      : state.stage === "interview"
+        ? { label: "查看面试安排", to: "/student/status" as const, module: null }
+        : state.stage === "offer"
+          ? pendingOffers.length > 0
+            ? { label: `查看 ${pendingOffers.length} 个拟录取`, to: null, module: "offers" as const }
+            : { label: "查看面试结果", to: "/student/status" as const, module: null }
+          : state.stage === "supplement"
+            ? { label: "查看补录结果", to: "/student/status" as const, module: null }
+            : state.stage === "adjustment"
+              ? { label: "查看调剂结果", to: "/student/status" as const, module: null }
+              : { label: "查看公示名单", to: "/student/results" as const, module: null };
+
+  const secondaryAction =
+    state.stage === "intent" || state.stage === "interview"
+      ? { label: "查看我的申请", to: "/student/application" as const }
+      : state.stage === "offer"
+        ? { label: "查看面试结果", to: "/student/status" as const }
+        : state.stage === "publicity"
+          ? { label: "查看我的申请", to: "/student/application" as const }
+          : { label: "查看我的申请", to: "/student/application" as const };
 
   const modules: Array<{
     id: OverviewModule;
@@ -69,15 +112,21 @@ export function StudentOverview() {
     {
       id: "offers",
       label: "拟录取",
-      hint: confirmedUnit ? "去向已确认" : pendingOffers.length > 0 ? "待你选择" : "暂无待确认",
+      hint: activeConfirmedUnit
+        ? "去向已确认"
+        : activePendingOffers.length > 0
+          ? "待你选择"
+          : offerDecisionOpen
+            ? "暂无待确认"
+            : "尚未开放",
       icon: ClipboardCheck,
-      badge: pendingOffers.length,
+      badge: activePendingOffers.length,
     },
-    { id: "progress", label: "选拔进度", hint: "六个业务阶段", icon: CalendarCheck2 },
+    { id: "progress", label: "选拔进度", hint: guide.focus, icon: CalendarCheck2 },
     {
       id: "directions",
       label: "方向与通知",
-      hint: `${selectedUnits.length} 个平行意向`,
+      hint: state.stage === "publicity" ? "公示信息与通知" : state.stage === "intent" ? `${selectedUnits.length} 个平行意向` : "方向已锁定，仅可查看",
       icon: Compass,
     },
   ];
@@ -141,32 +190,23 @@ export function StudentOverview() {
                   </h1>
                   <p className="hero-lede">{description}</p>
                   <div className="hero-actions">
-                    {confirmedUnit ? (
+                    {primaryAction.module ? (
                       <button
                         type="button"
                         className="btn btn-primary"
-                        onClick={() => setActiveModule("offers")}
+                        onClick={() => setActiveModule(primaryAction.module ?? "overview")}
                       >
-                        查看已确认去向
-                        <ArrowRight aria-hidden="true" />
-                      </button>
-                    ) : pendingOffers.length > 0 ? (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => setActiveModule("offers")}
-                      >
-                        查看 {pendingOffers.length} 个拟录取
+                        {primaryAction.label}
                         <ArrowRight aria-hidden="true" />
                       </button>
                     ) : (
-                      <Link to="/student/units" className="btn btn-primary">
-                        看看招生方向
+                      <Link to={primaryAction.to ?? "/student"} className="btn btn-primary">
+                        {primaryAction.label}
                         <ArrowRight aria-hidden="true" />
                       </Link>
                     )}
-                    <Link to="/student/application" className="hero-link">
-                      查看我的申请
+                    <Link to={secondaryAction.to} className="hero-link">
+                      {secondaryAction.label}
                       <ArrowRight aria-hidden="true" />
                     </Link>
                   </div>
@@ -176,7 +216,7 @@ export function StudentOverview() {
                   <div className="stage-card-head">
                     <span className="stage-state">
                       <span className="stage-live-dot" aria-hidden="true" />
-                      {state.stage === "publicity" ? "等待公示" : "正在进行"}
+                      {stageStateLabel}
                     </span>
                     <span className="stage-number">
                       {String(stage.number).padStart(2, "0")}
@@ -184,6 +224,7 @@ export function StudentOverview() {
                     </span>
                   </div>
                   <h2>{stage.label}</h2>
+                  <p className="stage-card-focus">{guide.focus}</p>
                   <div className="stage-mini-progress">
                     {STAGES.map((item) => (
                       <span
@@ -199,32 +240,48 @@ export function StudentOverview() {
               </div>
             </section>
 
+            <StageFunctionStrip available={guide.available} unavailable={guide.unavailable} />
+
             <section className="stats-grid" aria-label="我的关键数据">
               <StatCard
                 label="平行意向"
                 value={`${state.selectedUnitIds.length} / 3`}
-                hint="不分先后，同等有效"
+                hint={state.stage === "intent" ? "不分先后，提交前可调整" : "本轮申请已锁定"}
                 icon={<FileText aria-hidden="true" />}
                 tone="sage"
               />
               <StatCard
                 label="面试完成"
-                value={`${doneInterviews} / ${state.interviews.length}`}
-                hint="全部有效报名均已面试"
+                value={interviewsStarted ? `${doneInterviews} / ${state.interviews.length}` : "—"}
+                hint={
+                  state.stage === "intent"
+                    ? "面试尚未开始"
+                    : doneInterviews === state.interviews.length
+                      ? "全部面试已完成"
+                      : `还有 ${state.interviews.length - doneInterviews} 场待完成`
+                }
                 icon={<CalendarCheck2 aria-hidden="true" />}
                 tone="sky"
               />
               <StatCard
-                label={confirmedUnit ? "已确认去向" : "待确认拟录取"}
-                value={confirmedUnit ? "1" : pendingOffers.length}
-                hint={confirmedUnit ? confirmedUnit.name : "只能选择一个去向"}
+                label={activeConfirmedUnit ? "已确认去向" : "待确认拟录取"}
+                value={activeConfirmedUnit ? "1" : offerDecisionOpen ? activePendingOffers.length : "—"}
+                hint={
+                  activeConfirmedUnit
+                    ? activeConfirmedUnit.name
+                    : activePendingOffers.length > 0
+                      ? "只能选择一个去向"
+                      : offerDecisionOpen
+                        ? "暂无待确认拟录取"
+                        : guide.nextStep
+                }
                 icon={<ClipboardCheck aria-hidden="true" />}
-                tone={confirmedUnit ? "leaf" : "coral"}
+                tone={activeConfirmedUnit ? "leaf" : offerDecisionOpen ? "coral" : "sage"}
               />
               <StatCard
                 label="面试最高分"
-                value={topScore}
-                hint="评分仅本人可见"
+                value={topScore || "—"}
+                hint={topScore ? "评分仅本人可见" : "暂无可查看评分"}
                 icon={<Sparkles aria-hidden="true" />}
                 tone="rose"
               />
@@ -235,36 +292,38 @@ export function StudentOverview() {
         {activeModule === "offers" && (
           <div className="overview-module">
             <SectionTitle
-              title={confirmedUnit ? "去向已经确认" : "此刻，方向在等你"}
+              title={activeConfirmedUnit ? "去向已经确认" : offerDecisionOpen ? "此刻，方向在等你" : "拟录取尚未开放"}
               description={
-                confirmedUnit
+                activeConfirmedUnit
                   ? "确认结果已锁定。学院将继续完成唯一性、名额与授权校验。"
-                  : "确认后，其他拟录取会立即失效。请以培养安排和考核要求为准做选择。"
+                  : offerDecisionOpen
+                    ? "确认后，其他拟录取会立即失效。请以培养安排和考核要求为准做选择。"
+                    : `${guide.description}本阶段拟录取确认未开放。`
               }
               action={
-                confirmedUnit ? (
+                activeConfirmedUnit ? (
                   <StatusBadge tone="sage">已确认 1 个去向</StatusBadge>
-                ) : pendingOffers.length > 0 ? (
-                  <StatusBadge tone="coral">{pendingOffers.length} 个待确认</StatusBadge>
+                ) : activePendingOffers.length > 0 ? (
+                  <StatusBadge tone="coral">{activePendingOffers.length} 个待确认</StatusBadge>
                 ) : null
               }
             />
 
-            {pendingOffers.length > 0 ? (
+            {activePendingOffers.length > 0 ? (
               <div className="offer-grid">
-                {pendingOffers.map((offer) => (
+                {activePendingOffers.map((offer) => (
                   <OfferCard key={offer.id} offer={offer} onConfirm={setConfirmId} />
                 ))}
               </div>
-            ) : confirmedUnit ? (
+            ) : activeConfirmedUnit ? (
               <section className="confirmed-banner confirmed-banner--module">
                 <span className="confirmed-mark">
                   <CheckCircle2 aria-hidden="true" />
                 </span>
                 <div>
                   <span className="eyebrow">去向已确认</span>
-                  <h2>{confirmedUnit.name} · {confirmedUnit.direction}</h2>
-                  <p>导师 {confirmedUnit.mentor} · 组会 {confirmedUnit.schedule} · {confirmedUnit.location}</p>
+                  <h2>{activeConfirmedUnit.name} · {activeConfirmedUnit.direction}</h2>
+                  <p>导师 {activeConfirmedUnit.mentor} · 组会 {activeConfirmedUnit.schedule} · {activeConfirmedUnit.location}</p>
                 </div>
                 <Link to="/student/results" className="btn btn-secondary">
                   查看后续流程
@@ -277,11 +336,17 @@ export function StudentOverview() {
                   <ClipboardCheck aria-hidden="true" />
                 </span>
                 <div>
-                  <h3>暂无待确认拟录取</h3>
-                  <p>拟录取会在面试与调剂完成后出现在这里。先去查看招生方向，完善你的平行意向。</p>
+                  <h3>{state.stage === "interview" ? "面试完成后生成拟录取" : "当前没有待确认拟录取"}</h3>
+                  <p>
+                    {state.stage === "interview"
+                      ? "本阶段只进行面试与评分。拟录取确认要等学院切换到下一阶段后开放。"
+                      : state.stage === "intent"
+                        ? "先完成平行意向并提交申请，面试与候选名单完成后才会生成拟录取。"
+                        : "本轮确认窗口已结束。可在面试与结果中查看完整进度，或等待补录、调剂与公示更新。"}
+                  </p>
                 </div>
-                <Link to="/student/units" className="btn btn-secondary">
-                  查看招生方向
+                <Link to="/student/status" className="btn btn-secondary">
+                  查看面试与结果
                   <ChevronRight aria-hidden="true" />
                 </Link>
               </div>
@@ -318,7 +383,7 @@ export function StudentOverview() {
               <div className="content-card overview-progress-note">
                 <span className="eyebrow">我的进度</span>
                 <strong>{doneInterviews} / {state.interviews.length} 场面试完成</strong>
-                <p>{confirmedUnit ? `已确认 ${confirmedUnit.name}` : pendingOffers.length > 0 ? `还有 ${pendingOffers.length} 个拟录取待确认` : "暂未收到待确认拟录取"}</p>
+                <p>{activeConfirmedUnit ? `已确认 ${activeConfirmedUnit.name}` : activePendingOffers.length > 0 ? `还有 ${activePendingOffers.length} 个拟录取待确认` : offerDecisionOpen ? "暂未收到待确认拟录取" : `本阶段：${guide.nextStep}`}</p>
                 <small>评分与结果仅本人可见</small>
               </div>
             </div>
