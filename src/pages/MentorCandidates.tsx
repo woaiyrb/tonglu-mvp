@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { Callout, PageHeader, ScorePill, SectionTitle, StatusBadge } from "../components/Ui";
-import { UNITS } from "../data";
+import { STAGES, UNITS } from "../data";
 import { useApp } from "../store";
 import type { CandidateDecision } from "../types";
 import { cn, downloadCsv, getUnitStats } from "../utils";
@@ -25,6 +25,9 @@ export function MentorCandidates() {
   const unit = UNITS[0];
   const stats = getUnitStats(unit, state.offers);
   const locked = state.candidateListSubmitted;
+  const stage = STAGES.find((item) => item.key === state.stage) ?? STAGES[0];
+  const stageOpen = state.stage === "interview";
+  const editable = !locked && stageOpen;
   const counts = useMemo(
     () => ({
       offer: state.candidates.filter((item) => item.decision === "offer").length,
@@ -42,6 +45,10 @@ export function MentorCandidates() {
       notify("候选名单已提交，结论已锁定。", "warning");
       return;
     }
+    if (!stageOpen) {
+      notify(`候选结论仅在“面试考核”阶段开放，当前为“${stage.label}”阶段。`, "warning");
+      return;
+    }
     updateCandidateDecision(id, decision);
   };
 
@@ -51,12 +58,16 @@ export function MentorCandidates() {
         eyebrow={<>候选人评审 · {unit.code}</>}
         title="把合适的人，放进合适的位置。"
         description="结合评分与评语形成拟录取、候补和未录取结论。提交后名单锁定。"
-        actions={<StatusBadge tone={locked ? "sage" : "coral"}>{locked ? "已提交锁定" : "编辑中"}</StatusBadge>}
+        actions={<StatusBadge tone={locked ? "sage" : stageOpen ? "coral" : "neutral"}>{locked ? "已提交锁定" : stageOpen ? "编辑中" : "阶段未开放"}</StatusBadge>}
       />
 
       {locked ? (
         <Callout tone="success" title="候选名单已提交">
           本轮名单已锁定。若需更正，请等待学院退回；退回时需填写原因，修改后生成新版本。
+        </Callout>
+      ) : !stageOpen ? (
+        <Callout tone="info" title={`${stage.label}：候选名单暂不可编辑`}>
+          候选结论与名单提交仅在“面试考核”阶段开放。当前阶段可查看评分和名额，不能修改或提交结论。
         </Callout>
       ) : (
         <Callout
@@ -110,7 +121,7 @@ export function MentorCandidates() {
 
         <div className="decision-list">
           {state.candidates.map((candidate, index) => (
-            <article className={cn("decision-row", locked && "is-locked")} key={candidate.id}>
+            <article className={cn("decision-row", editable === false && "is-locked")} key={candidate.id}>
               <span className="decision-index">{String(index + 1).padStart(2, "0")}</span>
               <div className="candidate-person">
                 <span className="mentor-avatar">{candidate.name.slice(0, 1)}</span>
@@ -129,7 +140,7 @@ export function MentorCandidates() {
                     className={cn(candidate.decision === decision.value && `is-active is-${decision.value}`)}
                     onClick={() => setDecision(candidate.id, decision.value)}
                     aria-pressed={candidate.decision === decision.value}
-                    disabled={locked}
+                    disabled={!editable}
                   >
                     {decision.label}
                   </button>
@@ -151,10 +162,10 @@ export function MentorCandidates() {
         <button
           type="button"
           className="btn btn-primary"
-          disabled={locked}
+          disabled={!editable}
           onClick={() => submitCandidateList()}
         >
-          {locked ? <><LockKeyhole aria-hidden="true" /> 已锁定</> : <><Send aria-hidden="true" /> 提交名单</>}
+          {locked ? <><LockKeyhole aria-hidden="true" /> 已锁定</> : !stageOpen ? <><LockKeyhole aria-hidden="true" /> 面试阶段开放</> : <><Send aria-hidden="true" /> 提交名单</>}
         </button>
       </section>
 

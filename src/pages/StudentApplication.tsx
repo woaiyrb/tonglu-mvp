@@ -12,7 +12,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   Callout,
@@ -34,10 +34,18 @@ export function StudentApplication() {
     toggleUnit,
     setAdjustment,
     setCommitment,
+    saveDraft,
     submitApplication,
     notify,
   } = useApp();
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [materials, setMaterials] = useState([
+    { name: "个人简历_孙悦.pdf", size: "218 KB", type: "简历" },
+    { name: "本科成绩单_2026.pdf", size: "1.2 MB", type: "成绩单" },
+    { name: "作品集说明.pdf", size: "3.4 MB", type: "补充材料" },
+  ]);
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const stage = STAGES.find((item) => item.key === state.stage) ?? STAGES[0];
   const locked = state.stage !== "intent";
   const selectedUnits = state.selectedUnitIds
@@ -46,6 +54,24 @@ export function StudentApplication() {
 
   const handleSubmit = async () => {
     if (await submitApplication()) setPreviewOpen(false);
+  };
+
+  const handleSaveDraft = async () => {
+    if (await saveDraft()) notify("草稿已同步到服务器，下次登录可继续编辑。", "success");
+  };
+
+  const handleReplacement = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || replacingIndex === null) return;
+    const size = file.size >= 1024 * 1024
+      ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+    setMaterials((current) => current.map((item, index) => (
+      index === replacingIndex ? { ...item, name: file.name, size } : item
+    )));
+    notify(`已选择 ${file.name}，提交申请时一并上传。`, "success");
+    event.target.value = "";
+    setReplacingIndex(null);
   };
 
   return (
@@ -216,11 +242,7 @@ export function StudentApplication() {
             </div>
 
             <div className="file-list">
-              {[
-                { name: "个人简历_孙悦.pdf", size: "218 KB", type: "简历" },
-                { name: "本科成绩单_2026.pdf", size: "1.2 MB", type: "成绩单" },
-                { name: "作品集说明.pdf", size: "3.4 MB", type: "补充材料" },
-              ].map((file) => (
+              {materials.map((file, index) => (
                 <div className="file-row" key={file.name}>
                   <span className="file-icon">
                     <FileText aria-hidden="true" />
@@ -236,12 +258,27 @@ export function StudentApplication() {
                   <button
                     type="button"
                     className="text-link"
-                    onClick={() => notify("演示环境不执行真实文件上传。", "info")}
+                    disabled={locked}
+                    onClick={() => {
+                      if (locked) {
+                        notify("当前阶段申请已锁定，不能替换材料。", "warning");
+                        return;
+                      }
+                      setReplacingIndex(index);
+                      replaceInputRef.current?.click();
+                    }}
                   >
                     替换
                   </button>
                 </div>
               ))}
+              <input
+                ref={replaceInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.zip"
+                hidden
+                onChange={handleReplacement}
+              />
             </div>
 
             <label className={cn("commitment-card", state.commitment && "is-checked")}>
@@ -280,7 +317,7 @@ export function StudentApplication() {
             </div>
             <div>
               <dt>材料</dt>
-              <dd>3 份</dd>
+              <dd>{materials.length} 份</dd>
             </div>
             <div>
               <dt>当前版本</dt>
@@ -310,7 +347,7 @@ export function StudentApplication() {
             type="button"
             className="btn btn-secondary btn-block"
             disabled={locked}
-            onClick={() => notify("草稿已保存在本机浏览器。", "info")}
+            onClick={handleSaveDraft}
           >
             保存草稿
           </button>

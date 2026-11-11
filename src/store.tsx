@@ -87,6 +87,7 @@ interface AppContextValue {
   toggleUnit: (unitId: string) => void;
   setAdjustment: (key: "internal" | "cross", value: boolean) => void;
   setCommitment: (value: boolean) => void;
+  saveDraft: () => Promise<boolean>;
   submitApplication: () => Promise<boolean>;
   confirmOffer: (offerId: string) => Promise<boolean>;
   updateCandidateScore: (id: string, score: number, comment: string) => Promise<boolean>;
@@ -241,24 +242,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return applyMutation("/demo/stage", "POST", { stage });
   }, [applyMutation]);
 
+  const persistDraft = useCallback(async (next: AppState) => {
+    try {
+      const result = await request<{ state: AppState }>("/student/draft", {
+        method: "PATCH",
+        body: JSON.stringify({
+          selectedUnitIds: next.selectedUnitIds,
+          adjustments: next.adjustments,
+          commitment: next.commitment,
+        }),
+      }, tokenRef.current);
+      setState(result.state);
+      return true;
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "草稿保存失败。", "warning");
+      return false;
+    }
+  }, [notify]);
+
   const syncDraft = useCallback((next: AppState) => {
     if (draftTimer.current) clearTimeout(draftTimer.current);
-    draftTimer.current = setTimeout(async () => {
-      try {
-        const result = await request<{ state: AppState }>("/student/draft", {
-          method: "PATCH",
-          body: JSON.stringify({
-            selectedUnitIds: next.selectedUnitIds,
-            adjustments: next.adjustments,
-            commitment: next.commitment,
-          }),
-        }, tokenRef.current);
-        setState(result.state);
-      } catch (error) {
-        notify(error instanceof Error ? error.message : "草稿保存失败。", "warning");
-      }
+    draftTimer.current = setTimeout(() => {
+      void persistDraft(next);
     }, 260);
-  }, [notify]);
+  }, [persistDraft]);
+
+  const saveDraft = useCallback(async () => {
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    return persistDraft(stateRef.current);
+  }, [persistDraft]);
 
   const toggleUnit = useCallback((unitId: string) => {
     const current = stateRef.current;
@@ -416,6 +428,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     toggleUnit,
     setAdjustment,
     setCommitment,
+    saveDraft,
     submitApplication,
     confirmOffer,
     updateCandidateScore,
@@ -432,7 +445,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     resetDemo,
   }), [
     state, loading, authError, toast, notify, dismissToast, setRole, setStage,
-    toggleUnit, setAdjustment, setCommitment, submitApplication, confirmOffer,
+    toggleUnit, setAdjustment, setCommitment, saveDraft, submitApplication, confirmOffer,
     updateCandidateScore, updateCandidateDecision, submitCandidateList,
     generateSupplement, approveAdjustment, publishResults, freezeResults,
     submitAppeal, resolveAppeal, updateUserAccess, updateUnitQuota, resetDemo,

@@ -17,6 +17,7 @@ export function AdminQuota() {
   const units = state.units?.length ? state.units : UNITS;
   const stage = STAGES.find((item) => item.key === state.stage) ?? STAGES[0];
   const frozen = Boolean(state.frozenAt);
+  const supplementOpen = state.stage === "supplement" && !frozen;
   const [draftQuota, setDraftQuota] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -155,10 +156,10 @@ export function AdminQuota() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={frozen || state.supplementRound >= 2}
+              disabled={!supplementOpen || state.supplementRound >= 2}
               onClick={() => void generateSupplement()}
             >
-              {frozen ? <><LockKeyhole aria-hidden="true" /> 已冻结</> : <><ListPlus aria-hidden="true" /> 生成下一轮补录</>}
+              {frozen ? <><LockKeyhole aria-hidden="true" /> 已冻结</> : state.stage !== "supplement" ? <><LockKeyhole aria-hidden="true" /> 补录阶段开放</> : <><ListPlus aria-hidden="true" /> 生成下一轮补录</>}
             </button>
           </div>
         </div>
