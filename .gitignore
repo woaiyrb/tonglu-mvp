@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vite/
+.idea/
+.playwright-cli/
+data/*.db
+data/*.db-*
+*.tsbuildinfo
+*.log
+output/
