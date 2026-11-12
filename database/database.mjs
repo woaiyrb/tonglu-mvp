@@ -16,7 +16,7 @@ import {
 } from "./seed-data.mjs";
 
 const serverDir = dirname(fileURLToPath(import.meta.url));
-export const DB_PATH = process.env.TONGLU_DB ?? join(serverDir, "..", "data", "tonglu.db");
+export const DB_PATH = process.env.TONGLU_DB ?? join(serverDir, "data", "tonglu.db");
 
 mkdirSync(dirname(DB_PATH), { recursive: true });
 export const db = new DatabaseSync(DB_PATH);

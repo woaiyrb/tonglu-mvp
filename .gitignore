@@ -3,8 +3,12 @@ dist/
 .vite/
 .idea/
 .playwright-cli/
-data/*.db
-data/*.db-*
+database/data/*.db
+database/data/*.db-*
 *.tsbuildinfo
 *.log
 output/
+.env.audit
+hero-*.png
+screenshots/
+dist/

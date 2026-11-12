@@ -1,6 +1,30 @@
 # 同路 · 学生实训室进组选导师系统 MVP
 
-学院实训室双向选择演示系统。前端使用 React 19、TypeScript、Vite 和 React Router，视觉采用吉卜力风格；后端使用 Node.js 内置 HTTP 与 Node 24 内置 SQLite，数据真实落库。
+学院实训室双向选择演示系统。代码按前端、后端、数据库三层拆分：前端使用 React 19、TypeScript、Vite 和 React Router，视觉采用吉卜力风格；后端使用 Node.js 内置 HTTP；数据库使用 Node 24 内置 SQLite，数据真实落库。
+
+## 目录结构
+
+```text
+D:\505\mvp
+├─ frontend/          前端
+│  ├─ src/            React 页面、组件、样式
+│  ├─ public/         静态资源
+│  ├─ scripts/        样式类名扫描脚本
+│  ├─ index.html
+│  ├─ vite.config.ts
+│  └─ tsconfig*.json
+├─ backend/           后端
+│  ├─ index.mjs       HTTP API、权限、业务事务
+│  └─ scripts/        开发启动、接口验证脚本
+├─ database/          数据库
+│  ├─ database.mjs    表结构、会话、查询
+│  ├─ seed-data.mjs   演示账号与业务种子
+│  └─ data/           SQLite 数据文件
+├─ docs/
+│  └─ api-reference.md  接口文档（OpenAI API Reference 风格）
+├─ package.json
+└─ README.md
+```
 
 ## 启动
 
@@ -17,7 +41,7 @@ npm run dev
 | 网页 | http://127.0.0.1:4175/ |
 | API | http://127.0.0.1:4176/api/health |
 
-数据库文件：`D:\505\mvp\data\tonglu.db`。首次启动自动建表并写入演示数据。
+数据库文件：`D:\505\mvp\database\data\tonglu.db`。首次启动自动建表并写入演示数据。
 
 生产构建：
 
@@ -26,7 +50,7 @@ npm run build
 npm run start
 ```
 
-构建后的网页与 API 由 `4176` 端口一起提供。
+构建产物输出到 `frontend/dist`，构建后的网页与 API 由 `4176` 端口一起提供。
 
 ## 演示账号
 
@@ -63,24 +87,30 @@ npm run start
 ```powershell
 cd D:\505\mvp
 npm run build
-node scripts\verify-api.mjs
+node backend\scripts\verify-api.mjs
 ```
 
-`verify-api.mjs` 覆盖七个角色登录、评分持久化、候选名单提交、拟录取确认、名额修改、调剂审批、公示、异议办结、正式名单冻结、账号状态修改和最终数据恢复。
+`backend/scripts/verify-api.mjs` 覆盖七个角色登录、评分持久化、候选名单提交、拟录取确认、名额修改、调剂审批、公示、异议办结、正式名单冻结、账号状态修改和最终数据恢复。
 
 ## 主要文件
 
 | 路径 | 用途 |
 | --- | --- |
-| `src/App.tsx` | 路由表 |
-| `src/components/Layout.tsx` | PC 固定布局、角色导航、URL 角色同步、阶段切换 |
-| `src/store.tsx` | 后端会话、业务状态、权限判断 |
-| `src/data.ts` | 前端展示种子与静态文案 |
-| `src/styles.css` | 吉卜力视觉、PC 工作台、响应式样式 |
-| `src/pages/` | 七个角色的页面 |
-| `server/index.mjs` | HTTP API、权限、业务事务 |
-| `server/database.mjs` | SQLite 表结构、种子、会话、查询 |
-| `server/seed-data.mjs` | 演示账号与业务种子 |
+| `frontend/src/App.tsx` | 路由表 |
+| `frontend/src/components/Layout.tsx` | PC 固定布局、角色导航、URL 角色同步、阶段切换 |
+| `frontend/src/store.tsx` | 后端会话、业务状态、权限判断 |
+| `frontend/src/data.ts` | 前端展示种子与静态文案 |
+| `frontend/src/styles.css` | 吉卜力视觉、PC 工作台、响应式样式 |
+| `frontend/src/pages/` | 七个角色的页面 |
+| `backend/index.mjs` | HTTP API、权限、业务事务 |
+| `backend/scripts/verify-api.mjs` | 接口端到端验证 |
+| `database/database.mjs` | SQLite 表结构、种子、会话、查询 |
+| `database/seed-data.mjs` | 演示账号与业务种子 |
+| `docs/api-reference.md` | 接口文档 |
+
+## 接口文档
+
+见 [docs/api-reference.md](docs/api-reference.md)。文档采用 OpenAI API Reference 风格：统一响应信封、鉴权说明、按资源分组的端点、请求参数表、响应示例和错误码。
 
 ## 边界
 

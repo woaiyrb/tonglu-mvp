@@ -1,5 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const srcDir = path.join(scriptDir, "..", "src");
 
 const classes = new Set();
 const walk = (dir) => {
@@ -18,7 +22,7 @@ const walk = (dir) => {
   }
 };
 
-walk("src");
-const css = fs.readFileSync("src/styles.css", "utf8");
+walk(srcDir);
+const css = fs.readFileSync(path.join(srcDir, "styles.css"), "utf8");
 const defined = new Set([...css.matchAll(/\.([A-Za-z][\w-]*)/g)].map((m) => m[1]));
 console.log([...classes].filter((name) => !defined.has(name)).sort().join("\n"));

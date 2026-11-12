@@ -14,13 +14,13 @@ import {
   resetBusinessData,
   sanitizeUser,
   transaction,
-} from "./database.mjs";
-import { DEMO_PASSWORD, PUBLIC_RESULTS } from "./seed-data.mjs";
+} from "../database/database.mjs";
+import { DEMO_PASSWORD, PUBLIC_RESULTS } from "../database/seed-data.mjs";
 
 const PORT = Number(process.env.PORT ?? 4176);
 const HOST = process.env.HOST ?? "127.0.0.1";
 const APP_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const DIST_ROOT = join(APP_ROOT, "dist");
+const DIST_ROOT = join(APP_ROOT, "frontend", "dist");
 
 const ROLES = new Set([
   "student",
